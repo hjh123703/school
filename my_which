@@ -1,0 +1,142 @@
+# INFO: Which takes a list of names and looks for the files 
+# which would be executed had these names been given as commands. 
+# Each argument is searched for along the user's path.
+# If  the -a flag is give, which will return a list of 
+# all matches instead of just the  first match.
+
+
+# Is option -a enabled?
+opt_a=0
+
+# Variable to record how many names were resolved
+found=0
+
+# Retreieve the arguments used with which command
+args=$@
+
+# Retrieve the number of arguments used with program 
+num_args=$#
+
+
+# Displays the Error Message for misuse of program
+error_usage(){
+	#echo "usage: $(basename $0) [-a] name ..." >&2
+	echo "usage: which [-a] name ..." >&2
+	exit 1
+}
+
+# Check the input arguments entered with program
+check_args(){
+	# Get input argumnts
+	# By adding: before a, I am telling getopts that I want to take control
+	# of flags that are not in the list I set
+	while getopts ":a" options; do
+		case "${options}" in
+			# if -a option is used
+			a) 
+		   	  opt_a=1
+		   	  ;;
+			# If an unknown option is used, display error message
+			?) 
+			  echo "which: unknown option -- ${OPTARG}" >&2
+			  error_usage 
+			  exit 1
+		   	  ;;
+		esac
+	done
+       
+	# If -a used shift to retrieve only file names 
+	if [ $opt_a -eq 1 ]; then	
+		shift $((OPTIND - 1 ))
+		args=$@
+		num_args=$num_args-1
+	fi
+
+	# If no arguments were entered: ./<program> -a or ./<program>
+	# DIsplay error message
+	if [ $num_args -eq 0 ]; then
+		error_usage
+		exit 1
+	fi
+}
+
+
+dirs=""
+
+# Path is a colon-separated list of directories in which to find executables. If PATH is not set or is empty, which will use the  system's default search path 
+
+# . If PATH is not set or is empty, which will use the system's default search path.
+#  _DEF_PATH value was retrieved from official git repo of OPENBSD
+#  https://github.com/openbsd/src/blob/master/include/paths.h
+IFS=":"
+
+if [ -z "$PATH" ]; then
+	path="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/local/bin:/usr/local/sbin"
+else
+	path="$PATH"
+fi
+
+for dir in $path; do
+	dirs="$dirs$dir ";
+done
+unset IFS
+	
+
+# Loop over each directory in path and check if command exists
+# If command is found, echo full path
+
+main_function(){
+	for arg in $args; do
+		is_found=0
+	
+		# Have to use case to handle "/file file and ./file cases since bourne shell doesn't support regex"	
+		case "$arg" in
+			# If provided argument is PATH to valid input file
+			# Contains '/'
+			*/*)
+				if [ -f "$arg" ] && [ -x "$arg" ]; then
+					echo "$arg"
+					found=$found+1
+					is_found=1
+				#else
+				#	echo "$arg: Command not found." >&2
+				fi;;
+			*)
+				for dir in $dirs; do
+					if [ -f "$dir/$arg" ] && [ -x "$dir/$arg" ]; then
+						echo "$dir/$arg"
+						found=$found+1
+						is_found=1
+					# If -a option is not used, only display first match
+						[ "$opt_a" -eq 0 ] && break
+					fi
+				done
+		esac
+
+		# A diagnostic is given if an executable file with the argument name was not found in the path
+		if [ $is_found -eq 0 ]; then
+			#echo "$(basename $0): $arg: Command not found." >&2
+			echo "which: $arg: Command not found." >&2
+		fi
+	done
+
+
+	# Program exits in the code below
+
+	# Case: All names were successfully resolved
+	if [ $found -eq $num_args ]; then
+		exit 0
+	fi
+
+	# Case: No names were resolved
+	if [ $found -eq 0 ]; then
+		exit 2
+	fi
+
+	# Case: Some names were resolved but not all
+	exit 1
+}
+
+
+check_args $@
+main_function $@
