@@ -12,27 +12,26 @@ opt_a=0
 found=0
 
 # Retreieve the arguments used with which command
-args=$@
+args="$@"
 
 # Retrieve the number of arguments used with program 
 num_args=$#
 
 
-# Displays the Error Message for misuse of program
+# Usage Error Message
 error_usage(){
 	#echo "usage: $(basename $0) [-a] name ..." >&2
 	echo "usage: which [-a] name ..." >&2
 	exit 1
 }
 
-# Check the input arguments entered with program
+# Check input arguments 
 check_args(){
 	# Get input argumnts
-	# By adding: before a, I am telling getopts that I want to take control
-	# of flags that are not in the list I set
+	# By adding: before a, I am telling getopts that I want to take control of flags that are not in the list I set
 	while getopts ":a" options; do
 		case "${options}" in
-			# if -a option is used
+			# if -a option is enabled
 			a) 
 		   	  opt_a=1
 		   	  ;;
@@ -45,15 +44,14 @@ check_args(){
 		esac
 	done
        
-	# If -a used shift to retrieve only file names 
+	# If -a option is enabled, shift to retrieve only file names 
 	if [ $opt_a -eq 1 ]; then	
 		shift $((OPTIND - 1 ))
 		args=$@
 		num_args=$num_args-1
 	fi
 
-	# If no arguments were entered: ./<program> -a or ./<program>
-	# DIsplay error message
+	# If no arguments were entered: ./<program> -a or ./<program> then  display usage error message
 	if [ $num_args -eq 0 ]; then
 		error_usage
 		exit 1
@@ -63,11 +61,10 @@ check_args(){
 
 dirs=""
 
-# Path is a colon-separated list of directories in which to find executables. If PATH is not set or is empty, which will use the  system's default search path 
+# Path is a colon-separated list of directories in which to find executables. If PATH is not set or is empty, which will use the system's default search path 
 
 # . If PATH is not set or is empty, which will use the system's default search path.
-#  _DEF_PATH value was retrieved from official git repo of OPENBSD
-#  https://github.com/openbsd/src/blob/master/include/paths.h
+#  _DEF_PATH value was retrieved from official git repo of OPENBSD https://github.com/openbsd/src/blob/master/include/paths.h
 IFS=":"
 
 if [ -z "$PATH" ]; then
@@ -82,17 +79,14 @@ done
 unset IFS
 	
 
-# Loop over each directory in path and check if command exists
-# If command is found, echo full path
-
+# Loop over each directory in path and check if corresponding valid file exists
 main_function(){
 	for arg in $args; do
 		is_found=0
-	
-		# Have to use case to handle "/file file and ./file cases since bourne shell doesn't support regex"	
+		
 		case "$arg" in
-			# If provided argument is PATH to valid input file
-			# Contains '/'
+			# If provided argument is a path to a valid input file
+			# Contains '/' --> path
 			*/*)
 				if [ -f "$arg" ] && [ -x "$arg" ]; then
 					echo "$arg"
@@ -124,12 +118,12 @@ main_function(){
 	# Program exits in the code below
 
 	# Case: All names were successfully resolved
-	if [ $found -eq $num_args ]; then
+	if [ "$found" -eq "$num_args" ]; then
 		exit 0
 	fi
 
 	# Case: No names were resolved
-	if [ $found -eq 0 ]; then
+	if [ "$found" -eq 0 ]; then
 		exit 2
 	fi
 
