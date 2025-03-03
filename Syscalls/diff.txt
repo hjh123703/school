@@ -1,0 +1,15 @@
+--- syscall_mi_original.h	2025-02-23 15:57:37.971702500 +0100
++++ syscall_mi_modified.h	2025-02-23 15:58:57.123979400 +0100
+@@ -160,10 +160,10 @@
+ 	    "[%s]%d/%d sp=%lx inside %lx-%lx: not MAP_STACK\n",
+ 	    uvm_map_inentry_sp, p->p_vmspace->vm_map.sserial))
+ 		return (EPERM);
+-
++/*
+ 	if ((error = pin_check(p, code)))
+ 		return (error);
+-
++*/
+ 	pledged = (p->p_p->ps_flags & PS_PLEDGE);
+ 	if (pledged && (error = pledge_syscall(p, code, &tval))) {
+ 		KERNEL_LOCK();
