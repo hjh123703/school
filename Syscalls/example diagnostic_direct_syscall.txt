@@ -1,0 +1,2 @@
+direct_sysca;;[24241]: pinsyscalls addr 86022798987 code 39, pinoff 0xffffffff (pin 330 8627f557000-8627f565670 e670) (libcpin 331 86236205000-862362bc000 b7000) error 78
+Abort trap (core dumped)
