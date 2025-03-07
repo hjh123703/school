@@ -5,10 +5,10 @@
 # If  the '-a' option is provided, all matching paths are displayed, 
 # otherwise only the first match is shown
 
-# Option: Show all matches if set to 1
+# Flag to track whether '-a' option (list all matches) is enabled
 opt_a=0
 
-# Counter for successfully found commands
+# Counter to track how many commands were successfully resolved
 found=0
 
 # Store arguments passed to the script
@@ -18,20 +18,20 @@ args="$@"
 num_args=$#
 
 
-# Display usage information and exit
+# Function: Display usage information and exit
 error_usage(){
 	echo "usage: which [-a] name ..." >&2
 	exit 1
 }
 
 
-# Display 'command not found' error
+# Function: Display 'Command not found' diagnostic
 error_option(){
 	echo "which: $1: Command not found." >&2
 
 }
 
-# Parse command-line options and arguments 
+# Function: Parse command-line options and arguments 
 check_args(){
         # Process options. The ':' before 'a' allows manual handling of unknown flags
 	while getopts ":a" options; do
@@ -49,11 +49,14 @@ check_args(){
 		esac
 	done
 
-	if [ $opt_a -eq 1 ]; then
-	       shift $(( OPTIND - 1 ))
-               args="$@"
-	       num_args=$#
-	fi
+	# Executing Shift in this function does not apply to other functions
+	# It's scope is limited to this function
+	shift $(( OPTIND - 1 ))
+
+	# So we created extra variables 
+        args="$@"
+	num_args=$#
+
 
 	# No arguments Provided
         [ $num_args -eq 0 ] && error_usage  
@@ -70,7 +73,7 @@ check_args(){
 # Loop over each directory in path and check if corresponding valid file exists
 main_function(){
 	# Iterate over each provided command argument
-	for arg in "$@"; do
+	for arg in $args; do
 		is_found=0
 		
 		case "$arg" in
@@ -121,5 +124,5 @@ main_function(){
 }
 
 
-check_args $@
-main_function $@
+check_args "$@"
+main_function "$args"
