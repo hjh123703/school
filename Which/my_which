@@ -5,10 +5,10 @@
 # If  the '-a' option is provided, all matching paths are displayed, 
 # otherwise only the first match is shown
 
-# Flag to track whether '-a' option (list all matches) is enabled
+# Option: Show all matches if set to 1
 opt_a=0
 
-# Counter to track how many commands were successfully resolved
+# Counter for successfully found commands
 found=0
 
 # Store arguments passed to the script
@@ -18,20 +18,20 @@ args="$@"
 num_args=$#
 
 
-# Function: Display usage information and exit
+# Display usage information and exit
 error_usage(){
 	echo "usage: which [-a] name ..." >&2
 	exit 1
 }
 
 
-# Function: Display 'Command not found' diagnostic
+# Display 'command not found' error
 error_option(){
 	echo "which: $1: Command not found." >&2
 
 }
 
-# Function: Parse command-line options and arguments 
+# Parse command-line options and arguments 
 check_args(){
         # Process options. The ':' before 'a' allows manual handling of unknown flags
 	while getopts ":a" options; do
@@ -51,8 +51,8 @@ check_args(){
 
 	if [ $opt_a -eq 1 ]; then
 	       shift $(( OPTIND - 1 ))
-               args=$@
-	       num_args=$num_args-1
+               args="$@"
+	       num_args=$#
 	fi
 
 	# No arguments Provided
@@ -62,7 +62,7 @@ check_args(){
 
 
 # Determine search path (use OpenBSD's default if PATH is unset or empty)
-[ -z "$PATH" ] && path="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/local/bin:/usr/local/sbin"
+[ -z "$PATH" ] && PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/local/bin:/usr/local/sbin"
 
 
 	
@@ -70,7 +70,7 @@ check_args(){
 # Loop over each directory in path and check if corresponding valid file exists
 main_function(){
 	# Iterate over each provided command argument
-	for arg in $args; do
+	for arg in "$@"; do
 		is_found=0
 		
 		case "$arg" in
