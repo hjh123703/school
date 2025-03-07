@@ -1,37 +1,42 @@
-# INFO: Which takes a list of names and looks for the files 
-# which would be executed had these names been given as commands. 
-# Each argument is searched for along the user's path.
-# If  the -a flag is give, which will return a list of 
-# all matches instead of just the  first match.
+#!/bin/sh
 
+# 'which' takes a list of command names and searches the user's PATH 
+# to identify the full path of executables matching those commands. 
+# If  the '-a' option is provided, all matching paths are displayed, 
+# otherwise only the first match is shown
 
-# Is option -a enabled?
+# Flag to track whether '-a' option (list all matches) is enabled
 opt_a=0
 
-# Variable to record how many names were resolved
+# Counter to track how many commands were successfully resolved
 found=0
 
-# Retreieve the arguments used with which command
+# Store arguments passed to the script
 args="$@"
 
-# Retrieve the number of arguments used with program 
+# Store number of arguments passed to the script
 num_args=$#
 
 
-# Usage Error Message
+# Function: Display usage information and exit
 error_usage(){
-	#echo "usage: $(basename $0) [-a] name ..." >&2
 	echo "usage: which [-a] name ..." >&2
 	exit 1
 }
 
-# Check input arguments 
+
+# Function: Display 'Command not found' diagnostic
+error_option(){
+	echo "which: $1: Command not found." >&2
+
+}
+
+# Function: Parse command-line options and arguments 
 check_args(){
-	# Get input argumnts
-	# By adding: before a, I am telling getopts that I want to take control of flags that are not in the list I set
+        # Process options. The ':' before 'a' allows manual handling of unknown flags
 	while getopts ":a" options; do
 		case "${options}" in
-			# if -a option is enabled
+			# if '-a' option is enabled
 			a) 
 		   	  opt_a=1
 		   	  ;;
@@ -43,75 +48,59 @@ check_args(){
 		   	  ;;
 		esac
 	done
-       
-	# If -a option is enabled, shift to retrieve only file names 
-	if [ $opt_a -eq 1 ]; then	
-		shift $((OPTIND - 1 ))
-		args=$@
-		num_args=$num_args-1
+
+	if [ $opt_a -eq 1 ]; then
+	       shift $(( OPTIND - 1 ))
+               args=$@
+	       num_args=$num_args-1
 	fi
 
-	# If no arguments were entered: ./<program> -a or ./<program> then  display usage error message
-	if [ $num_args -eq 0 ]; then
-		error_usage
-		exit 1
-	fi
+	# No arguments Provided
+        [ $num_args -eq 0 ] && error_usage  
 }
 
 
-dirs=""
 
-# Path is a colon-separated list of directories in which to find executables. If PATH is not set or is empty, which will use the system's default search path 
+# Determine search path (use OpenBSD's default if PATH is unset or empty)
+[ -z "$PATH" ] && path="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/local/bin:/usr/local/sbin"
 
-# . If PATH is not set or is empty, which will use the system's default search path.
-#  _DEF_PATH value was retrieved from official git repo of OPENBSD https://github.com/openbsd/src/blob/master/include/paths.h
-IFS=":"
 
-if [ -z "$PATH" ]; then
-	path="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/local/bin:/usr/local/sbin"
-else
-	path="$PATH"
-fi
-
-for dir in $path; do
-	dirs="$dirs$dir ";
-done
-unset IFS
 	
 
 # Loop over each directory in path and check if corresponding valid file exists
 main_function(){
+	# Iterate over each provided command argument
 	for arg in $args; do
 		is_found=0
 		
 		case "$arg" in
-			# If provided argument is a path to a valid input file
-			# Contains '/' --> path
-			*/*)
+			*/*) # Explicit path provided
+
 				if [ -f "$arg" ] && [ -x "$arg" ]; then
 					echo "$arg"
-					found=$found+1
+					found=$((found+1))
 					is_found=1
-				#else
-				#	echo "$arg: Command not found." >&2
-				fi;;
-			*)
-				for dir in $dirs; do
-					if [ -f "$dir/$arg" ] && [ -x "$dir/$arg" ]; then
-						echo "$dir/$arg"
-						found=$found+1
+				fi
+				;;
+			*) # Search for command in PATH directories
+				IFS=':'
+				for dir in $PATH; do
+					[ -z "$dir" ] && dir="." # Empty PATH entry means current directory
+					candidate="$dir/$arg"
+					if [ -f "$candidate" ] && [ -x "$candidate" ]; then
+						echo "$candidate"
+						found=$((found+1))
 						is_found=1
 					# If -a option is not used, only display first match
 						[ "$opt_a" -eq 0 ] && break
 					fi
 				done
+				unset IFS
+				;;
 		esac
 
-		# A diagnostic is given if an executable file with the argument name was not found in the path
-		if [ $is_found -eq 0 ]; then
-			#echo "$(basename $0): $arg: Command not found." >&2
-			echo "which: $arg: Command not found." >&2
-		fi
+		# If command wasn't found, show diagnostic
+		[ $is_found -eq 0 ] && error_option "$arg"
 	done
 
 
